@@ -70,7 +70,7 @@ while True:
     print("\nDerivative Calculator") 
     print("1. Numeric Differentiation")
     print("2. Symbolic Derivative")
-    mode = input("Choose mode: (1/2)")
+    mode = input("Choose mode (1/2): ")
 
     if mode == "1":
         numericMode()
