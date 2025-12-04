@@ -255,3 +255,145 @@ def gatherAddTerms(node, terms):
         gatherAddTerms(node.inputs[1], terms)
     else:
         terms.append(node)
+
+
+def gatherMultFactors(node, factors):
+    if isinstance(node, BinaryMulNode):
+        gatherMultFactors(node.inputs[0], factors)
+        gatherMultFactors(node.inputs[1], factors)
+    else:
+        factors.append(node)
+
+
+def buildAdditionTree(termList):
+    if not termList:
+        return ConstantNode(0)
+    node = termList[0]
+    for t in termList[1:]:
+        node = BinaryAddNode([node, t])
+    return node
+
+def buildMultTree(factorList):
+    if not factorList:
+        return ConstantNode(1)
+    node = factorList[0]
+    for f in factorList[1:]:
+        node = BinaryMulNode([node, f])
+    return node
+
+def simplify(node):
+    #AAAAAAAAAAAAAAAAAAAAAAAAAAAAGH
+    if isinstance(node, ConstantNode) or isinstance(node, InputNode):
+        return node
+    
+    simplifiedChildNodes = [simplify(ch) for ch in node.inputs]
+    node.inputs = simplifiedChildNodes
+
+    try:
+        if isinstance(node, BinaryAddNode) and all(isConstant(c) for c in node.inputs):
+            return ConstantNode(node.get_value())
+        if isinstance(node, BinarySubNode) and all(isConstant(c) for c in node.inputs):
+            return ConstantNode(node.get_value())
+        if isinstance(node, BinaryMulNode) and all(isConstant(c) for c in node.inputs):
+            return ConstantNode(node.get_value())
+        if isinstance(node, BinaryDivNode) and all(isConstant(c) for c in node.inputs):
+            return ConstantNode(node.get_value())
+        if isinstance(node, BinaryPowNode) and all(isConstant(c) for c in node.inputs):
+            return ConstantNode(node.get_value())
+    except Exception:
+        pass
+
+    if isinstance(node, BinaryAddNode):
+        terms = []
+        gatherAddTerms(node, terms)
+        constantSum = 0
+        newTerms = []
+        simpleCoefficients = defaultdict(float)
+        complexTerms = []
+
+        for t in terms:
+            if isConstant(t):
+                constantSum += t.value
+            elif isinstance(t, BinaryMulNode):
+                factors = []
+                gatherMultFactors(t, factors)
+                constantFactor = 1
+                variablePart = None
+                other = []
+                for f in factors:
+                    if isConstant(f):
+                        constantFactor *= f.value
+                    elif isVariable(f) and variablePart is None:
+                        variablePart = f
+                    else:
+                        other.append(f)
+                if variablePart is not None and not other:
+                    simpleCoefficients[variablePart.name] += constantFactor
+                else:
+                    complexTerms.append(t)
+            elif isVariable(t):
+                simpleCoefficients[t.name] += 1
+            else:
+                complexTerms.append(t)
+
+        for name, coeff in simpleCoefficients.items():
+            if abs(coeff) < 1e-12:
+                continue
+            variableNode = InputNode(name)
+            if abs(coeff - 1) < 1e-12:
+                newTerms.append(variableNode)
+            else:
+                newTerms.append(BinaryMulNode([ConstantNode(coeff), variableNode]))
+
+        newTerms.extend(complexTerms)
+        if abs(constantSum) > 1e-12:
+            newTerms.append(ConstantNode(constantSum))
+
+        if not newTerms:
+            return ConstantNode(0)
+        if len(newTerms) == 1:
+            return newTerms[0]
+        
+        node = buildAdditionTree(newTerms)
+        return node
+    
+    if isinstance(node, BinarySubNode):
+        a, b = node.inputs
+        if isConstant(b) and abs(b.value) < 1e-12:
+            return a
+        return BinarySubNode([a, b])
+    
+    if isinstance(node, BinaryMulNode):
+        factors = []
+        gatherMultFactors(node, factors)
+        constantProduct = 1
+        newFactors = []
+        for f in factors:
+            if isConstant(f):
+                constantProduct *= f.value
+            else:
+                newFactors.append(f)
+
+        if abs(constantProduct) < 1e-12:
+            return ConstantNode(0)
+        
+        if not newFactors:
+            return ConstantNode(constantProduct)
+        
+        if abs(constantProduct - 1) > 1e-12:
+            newFactors.insert(0, ConstantNode(constantProduct))
+
+        if len(newFactors) == 1:
+            return newFactors[0]
+        node = buildMultTree(newFactors)
+        return node
+    
+    if isinstance(node, BinaryDivNode):
+        a, b = node.inputs
+        if isConstant(a) and abs(a.value) < 1e-12:
+            return ConstantNode(0)
+        if isConstant(b) and abs(b.value - 1) < 1e-12:
+            return a
+        return node
+    
+    
