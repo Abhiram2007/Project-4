@@ -90,7 +90,7 @@ while True:
     
     shouldQuit = False
 
-    runAgain = "balls"
+    runAgain = "placeholder"
     while runAgain not in "yn":
         runAgain = input("\nRun Again? (y/n): ").lower()
         if runAgain == "n":
