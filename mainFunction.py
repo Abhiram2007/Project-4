@@ -58,13 +58,21 @@ def symbolicMode():
         print("Parsing Error: ", e)
         return
     
+    f.dump_structure()
+    
     n = int(input("Enter derivative order n: "))
 
     df = computeNthDerivative(f, "x", n)
+    dfSimplified = simplify(df)
+    
     
     print("\nSymbolic Derivative created.")
-    print(df)
+    print(dfSimplified)
 
+
+# x = cn(5) * cn(10) * sin(cn(m.pi)) + ln(m.e)
+
+# print(simplify(x))
 
 while True:
     print("\nDerivative Calculator") 

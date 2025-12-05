@@ -46,6 +46,11 @@ class ComputationalNode(ABC):
 
     def to_str(self, parent_prec=0):
         raise NotImplementedError("String conversion is not possible for this mathematical operation.")
+    
+    def dump_structure(self, depth=0):
+        print("  " * depth + self.__class__.__name__ + "  " + self.__str__())
+        for i in self.inputs:
+            i.dump_structure(depth + 1)
 
 
 #binary operators
@@ -396,4 +401,40 @@ def simplify(node):
             return a
         return node
     
+    if isinstance(node, BinaryPowNode):
+        base, exp = node.inputs
+        if isConstant(exp):
+            if abs(exp.value - 1) < 1e-12:
+                return base
+            if abs(exp.value) < 1e-12:
+                return ConstantNode(1)
+        if isConstant(base):
+            if abs(base.value - 1) < 1e-12:
+                return ConstantNode(1)
+            if isConstant(exp):
+                pass
+        return node
     
+    if isinstance(node, NaturalLogNode):
+        inner = node.inputs[0]
+        if isinstance(inner, ExpNode):
+            return inner.inputs[0]
+        return node
+    
+    if isinstance(node, ExpNode):
+        inner = node.inputs[0]
+        if isinstance(inner, NaturalLogNode):
+            return inner.inputs[0]
+        return node
+    
+    if isinstance(node, SinNode) and isConstant(node.inputs[0]):
+        return ConstantNode(node.get_value())
+    
+    if isinstance(node, CosNode) and isConstant(node.inputs[0]):
+        return ConstantNode(node.get_value())
+    
+    if isinstance(node, TanNode) and isConstant(node.inputs[0]):
+        return ConstantNode(node.get_value())
+
+    return node
+
