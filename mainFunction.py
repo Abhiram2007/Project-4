@@ -65,9 +65,7 @@ def symbolicMode():
 
     df = computeNthDerivative(f, "x", n)
     dfSimplified = simplify(df)
-    
-    
-    print("\nSymbolic Derivative created.")
+    print()
     print(dfSimplified)
 
 
@@ -90,10 +88,14 @@ while True:
     else:
         print("Invalid choice.")
     
-    runAgain = input("\nRun Again? (y/n): ")
-    if runAgain.lower() != "y":
-        print("Thank you for using this!")
+    shouldQuit = False
+
+    runAgain = "balls"
+    while runAgain not in "yn":
+        runAgain = input("\nRun Again? (y/n): ").lower()
+        if runAgain == "n":
+            print("Thank you for using this!")
+            shouldQuit = True
+
+    if shouldQuit:
         break
-
-
-
