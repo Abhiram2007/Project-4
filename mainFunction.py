@@ -5,6 +5,7 @@ from expressionParser import parseExpression
 def computeNthDerivative(f, var, n):
     for _ in range(n):
         f = f.derivative(var)
+        f = simplify(f)
     return f
 
 def numericMode():

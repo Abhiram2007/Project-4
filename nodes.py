@@ -133,6 +133,10 @@ class BinaryPowNode(ComputationalNode):
     
     def derivative(self, var):
         u, v = self.inputs
+
+        if isConstant(v):
+            return v * (u ** (v-1))
+        
         return (u ** v) * (v.derivative(var) * ln(u) + v * u.derivative(var) / u)
     
     def to_str(self, parent_prec=0):
@@ -149,7 +153,8 @@ class ExpNode(ComputationalNode):
         return ExpNode([u]) * u.derivative(var)
 
     def to_str(self, parent_prec=0):
-        return f"e^{self.inputs[0].to_str()}"
+        s = f"e^{self.inputs[0].to_str(precPow)}"
+        return s if parent_prec <= precPow else f"({s})"
 
 class NaturalLogNode(ComputationalNode):
     def get_value(self):
@@ -209,10 +214,7 @@ class ConstantNode(ComputationalNode):
         return ConstantNode(0)
     
     def to_str(self, parent_prec=0):
-        if abs(self.value - round(self.value)) < 1e-12:
-            return str(int(round(self.value)))
-        else:
-            return str(self.value)
+        return f"{self.value:.2f}".rstrip('0').rstrip('.')
     
 class InputNode(ComputationalNode):
     def __init__(self, name, value=None):
